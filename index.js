@@ -1,6 +1,7 @@
 import express, { response } from "express";
 import mongoose, { connect } from "mongoose";
 import User from "./models/User.js";
+import Message from "./models/Message.js";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import cors from "cors";
@@ -112,6 +113,32 @@ wss.on("connection", (connection, req) => {
     }
   }
 
+  connection.on("message", async (message) => {
+    const messageData = JSON.parse(message.toString());
+    const { recipient, text } = messageData;
+    if (recipient && text) {
+      const messageDoc = await Message.create({
+        sender: connection.userId,
+        recipient,
+        text,
+      });
+
+      [...wss.clients]
+        .filter((c) => c.userId === recipient)
+        .forEach((c) =>
+          c.send(
+            JSON.stringify({
+              text,
+              sender: connection.userId,
+              recipient,
+              id: messageDoc._id,
+            })
+          )
+        );
+    }
+  });
+
+  // notify everyone about online people or when someone connect
   [...wss.clients].forEach((client) => {
     client.send(
       JSON.stringify({
