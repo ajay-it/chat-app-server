@@ -65,7 +65,7 @@ app.get("/messages/:userId", async (req, res) => {
     const messages = await Message.find({
       sender: { $in: [userId, ourUserId] },
       recipient: { $in: [userId, ourUserId] },
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: 1 });
 
     res.json(messages);
   } catch (err) {
@@ -121,6 +121,11 @@ app.get("/profile", (req, res) => {
   }
 });
 
+app.get("/people", async (req, res) => {
+  const users = await User.find({}, { _id: 1, username: 1 });
+  res.json(users);
+});
+
 const server = app.listen(4000);
 
 const wss = new WebSocketServer({ server });
@@ -161,7 +166,7 @@ wss.on("connection", (connection, req) => {
               text,
               sender: connection.userId,
               recipient,
-              id: messageDoc._id,
+              _id: messageDoc._id,
             })
           )
         );
